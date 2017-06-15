@@ -3,23 +3,45 @@ from PIL import Image, ImageTk
 from collections import deque
 import tkinter as tk
 import threading, queue, time
+import sys
 
-#get window size/position using wnck (linux only)
-import gi
-gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck
+#window handling code, it has to be platform specific unfortunately
+if sys.platform == 'linux':
+    #get window size/position using wnck (linux only)
+    import gi
+    gi.require_version('Wnck', '3.0')
+    from gi.repository import Wnck
 
-def getWindowGeometry(name):
-    Wnck.Screen.get_default().force_update()
-    window_list = Wnck.Screen.get_default().get_windows()
-    for win in window_list:
-        if name in win.get_name():
-            geometry = list(win.get_geometry())
-            geometry[1] = geometry[1] + 25
-            geometry[3] = geometry[3] - 25
-            return geometry
+    def getWindowGeometry(name):
+        Wnck.Screen.get_default().force_update()
+        window_list = Wnck.Screen.get_default().get_windows()
+        for win in window_list:
+            if name in win.get_name():
+                geometry = list(win.get_geometry())
+                geometry[1] = geometry[1] + 25
+                geometry[3] = geometry[3] - 25
+                return geometry
 
-    return (200, 200, 600, 400)
+        return (200, 200, 600, 400)
+
+elif sys.platform == 'win32' or sys.platform == 'cygwin':
+    import win32gui
+
+    def findWindowCallback(hwnd, name):
+        theName = win32gui.GetWindowText(hwnd)
+        if name in theName :
+            global win32_rect
+            win32_rect = win32gui.GetWindowRect(hwnd)
+
+    def getWindowGeometry(name):
+        global win32_rect
+        win32_rect = (200, 200, 600, 400)
+        win32gui.EnumWindows(findWindowCallback, name)
+        x = win32_rect[0]
+        y = win32_rect[1]
+        w = win32_rect[2] - x
+        h = win32_rect[3] - y
+        return (x, y, w, h)
 
 windowGeometry = getWindowGeometry('Mupen64Plus')
 
