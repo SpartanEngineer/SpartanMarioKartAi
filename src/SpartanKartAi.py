@@ -81,15 +81,17 @@ class JoystickInput_SDL():
 
     def __init__(self, joystick):
         self.joystick = joystick
+        self.numAxes = min(sdl2.SDL_JoystickNumAxes(self.joystick), 4)
+        self.numButtons = sdl2.SDL_JoystickNumButtons(self.joystick)
 
     def getJoystickState(self):
         self.result = []
 
-        for i in range(sdl2.SDL_JoystickNumAxes(self.joystick)):
+        for i in range(self.numAxes):
             self.axis = sdl2.SDL_JoystickGetAxis(self.joystick, i) 
             self.result.append(self.axis)
 
-        for i in range(sdl2.SDL_JoystickNumButtons(self.joystick)):
+        for i in range(self.numButtons):
             self.button = sdl2.SDL_JoystickGetButton(self.joystick, i)
             self.result.append(self.button)
 
@@ -137,6 +139,9 @@ class App(object):
     self.ssLabel = tk.Label(image=self.ss)
     self.ssLabel.pack()
 
+    self.jsTextArea = tk.Text()
+    self.jsTextArea.pack()
+
     self.queue = queue.Queue(maxsize=1)
     self.poll_thread_stop_event = threading.Event()
     self.poll_thread = threading.Thread(target=ss_thread, name='Thread', args=(self.queue,self.poll_thread_stop_event))
@@ -171,7 +176,8 @@ class App(object):
       sdl2.SDL_PumpEvents()
       self.joystick = sdl2.SDL_JoystickOpen(0)
       self.joystickInput = JoystickInput_SDL(self.joystick)
-      print(self.joystickInput.getJoystickName(), self.joystickInput.getJoystickState())
+      self.jsTextArea.delete(1.0, tk.END)
+      self.jsTextArea.insert(1.0, str(self.joystickInput.getJoystickName()) + " : " + str(self.joystickInput.getJoystickState()))
 
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
 
