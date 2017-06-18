@@ -2,8 +2,7 @@ from mss import mss
 from PIL import Image, ImageTk
 from collections import deque
 import tkinter as tk
-import threading, queue, time
-import sys
+import threading, queue, time, sys, pygame
 
 #window handling code, it has to be platform specific unfortunately
 if sys.platform == 'linux':
@@ -55,6 +54,28 @@ def getScreenShot():
 
         img = Image.frombytes('RGB', (width, height), sct.get_pixels(mon))
         return ImageTk.PhotoImage(img)
+
+class JoystickInput():
+
+    def __init__(self, joystick):
+        self.joystick = joystick
+
+    def getJoystickState(self):
+        self.joystick.init()
+        self.result = []
+
+        for i in range(self.joystick.get_numaxes()):
+            self.axis = self.joystick.get_axis( i )
+            self.result.append(self.axis)
+
+        for i in range(self.joystick.get_numbuttons()):
+            self.button = self.joystick.get_button(i)
+            self.result.append(self.button)
+
+        return self.result
+
+    def getJoystickName(self):
+        return self.joystick.get_name()
 
 class FPSCounter():
 
@@ -122,7 +143,14 @@ class App(object):
       self.ssLabel.configure(image=self.ss)
       self.ssLabel.update_idletasks()
 
+      pygame.event.pump() #this is necessary for pygame to get the joystick info
+      self.joystickInput = JoystickInput(pygame.joystick.Joystick(0))
+      print(self.joystickInput.getJoystickName(), self.joystickInput.getJoystickState())
+
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
 
+pygame.init()
+pygame.joystick.init()
 app = App()
 app.root.mainloop() 
+pygame.quit()
