@@ -2,7 +2,7 @@ from mss import mss
 from PIL import Image, ImageTk
 from collections import deque
 import tkinter as tk
-import threading, queue, time, sys, pygame
+import threading, queue, time, sys, pygame, sdl2
 
 #window handling code, it has to be platform specific unfortunately
 if sys.platform == 'linux':
@@ -77,6 +77,27 @@ class JoystickInput():
     def getJoystickName(self):
         return self.joystick.get_name()
 
+class JoystickInput_SDL():
+
+    def __init__(self, joystick):
+        self.joystick = joystick
+
+    def getJoystickState(self):
+        self.result = []
+
+        for i in range(sdl2.SDL_JoystickNumAxes(self.joystick)):
+            self.axis = sdl2.SDL_JoystickGetAxis(self.joystick, i) 
+            self.result.append(self.axis)
+
+        for i in range(sdl2.SDL_JoystickNumButtons(self.joystick)):
+            self.button = sdl2.SDL_JoystickGetButton(self.joystick, i)
+            self.result.append(self.button)
+
+        return self.result
+
+    def getJoystickName(self):
+        return sdl2.SDL_JoystickName(self.joystick)
+
 class FPSCounter():
 
     def __init__(self):
@@ -143,14 +164,21 @@ class App(object):
       self.ssLabel.configure(image=self.ss)
       self.ssLabel.update_idletasks()
 
-      pygame.event.pump() #this is necessary for pygame to get the joystick info
-      self.joystickInput = JoystickInput(pygame.joystick.Joystick(0))
+      #pygame.event.pump() #this is necessary for pygame to get the joystick info
+      #self.joystickInput = JoystickInput(pygame.joystick.Joystick(0))
+      #print(self.joystickInput.getJoystickName(), self.joystickInput.getJoystickState())
+
+      sdl2.SDL_PumpEvents()
+      self.joystick = sdl2.SDL_JoystickOpen(0)
+      self.joystickInput = JoystickInput_SDL(self.joystick)
       print(self.joystickInput.getJoystickName(), self.joystickInput.getJoystickState())
 
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
 
 pygame.init()
 pygame.joystick.init()
+sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
 app = App()
 app.root.mainloop() 
 pygame.quit()
+sdl2.SDL_Quit()
