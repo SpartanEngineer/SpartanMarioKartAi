@@ -139,8 +139,27 @@ class App(object):
     self.ssLabel = tk.Label(image=self.ss)
     self.ssLabel.pack()
 
-    self.jsTextArea = tk.Text()
+    self.isRecording = False
+    self.recordFrame = tk.Frame(self.root)
+
+    self.recordLabel = tk.Label(self.recordFrame, text='Output Location: ')
+    self.recordLabel.pack(side=tk.LEFT)
+
+    self.recordEntry = tk.Entry(self.recordFrame)
+    self.recordEntry.pack(side=tk.LEFT)
+
+    self.recordButtonText = tk.StringVar()
+    self.recordButtonText.set("Start Recording")
+    self.recordButton = tk.Button(self.recordFrame, textvariable=self.recordButtonText, command=self.recordButtonClick)
+    self.recordButton.pack(side=tk.LEFT)
+
+    self.recordFrame.pack()
+
+    self.jsTextArea = tk.Text(height=3)
     self.jsTextArea.pack()
+
+    self.joystick = sdl2.SDL_JoystickOpen(0)
+    self.joystickInput = JoystickInput_SDL(self.joystick)
 
     self.queue = queue.Queue(maxsize=1)
     self.poll_thread_stop_event = threading.Event()
@@ -170,16 +189,21 @@ class App(object):
       self.ssLabel.update_idletasks()
 
       #pygame.event.pump() #this is necessary for pygame to get the joystick info
-      #self.joystickInput = JoystickInput(pygame.joystick.Joystick(0))
-      #print(self.joystickInput.getJoystickName(), self.joystickInput.getJoystickState())
+
+      self.jsString = str(self.joystickInput.getJoystickName()) + " : " + str(self.joystickInput.getJoystickState())
 
       sdl2.SDL_PumpEvents()
-      self.joystick = sdl2.SDL_JoystickOpen(0)
-      self.joystickInput = JoystickInput_SDL(self.joystick)
       self.jsTextArea.delete(1.0, tk.END)
-      self.jsTextArea.insert(1.0, str(self.joystickInput.getJoystickName()) + " : " + str(self.joystickInput.getJoystickState()))
+      self.jsTextArea.insert(1.0, self.jsString)
 
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
+
+  def recordButtonClick(self):
+    self.isRecording = not self.isRecording
+    if(self.isRecording):
+      self.recordButtonText.set("Stop Recording")
+    else:
+      self.recordButtonText.set("Start Recording")
 
 pygame.init()
 pygame.joystick.init()
