@@ -2,7 +2,9 @@ from mss import mss
 from PIL import Image, ImageTk
 from collections import deque
 import tkinter as tk
-import threading, queue, time, sys, pygame, sdl2
+import threading, queue, time, sys, pygame, sdl2, pickle
+
+globalJoystick, globalJoystickInput = None, None
 
 #window handling code, it has to be platform specific unfortunately
 if sys.platform == 'linux':
@@ -43,6 +45,7 @@ elif sys.platform == 'win32' or sys.platform == 'cygwin':
         return (x, y, w, h)
 
 windowGeometry = getWindowGeometry('Mupen64Plus')
+screenShotReSize = 320, 240
 
 def getScreenShot():
     with mss() as sct:
@@ -53,7 +56,8 @@ def getScreenShot():
         mon = {'top': y, 'left': x, 'width': width, 'height': height}
 
         img = Image.frombytes('RGB', (width, height), sct.get_pixels(mon))
-        return ImageTk.PhotoImage(img)
+        img.thumbnail(screenShotReSize, Image.ANTIALIAS)
+        return img
 
 class JoystickInput():
 
@@ -100,6 +104,9 @@ class JoystickInput_SDL():
     def getJoystickName(self):
         return sdl2.SDL_JoystickName(self.joystick)
 
+def getJoystickState(joystickInput):
+    return joystickInput.getJoystickState()
+
 class FPSCounter():
 
     def __init__(self):
@@ -124,7 +131,8 @@ def ss_thread(q, stop_event):
   """
   while(not stop_event.is_set()):
     if q.empty():
-      q.put(getScreenShot())
+      sdl2.SDL_PumpEvents()
+      q.put((getScreenShot(), getJoystickState(globalJoystickInput)))
 
 class App(object):
 
@@ -136,7 +144,7 @@ class App(object):
     self.fpsLabel.pack()
 
     self.ss = getScreenShot()
-    self.ssLabel = tk.Label(image=self.ss)
+    self.ssLabel = tk.Label(image=ImageTk.PhotoImage(self.ss))
     self.ssLabel.pack()
 
     self.isRecording = False
@@ -153,13 +161,15 @@ class App(object):
     self.recordButton = tk.Button(self.recordFrame, textvariable=self.recordButtonText, command=self.recordButtonClick)
     self.recordButton.pack(side=tk.LEFT)
 
+    self.recordTimeRunningText = tk.StringVar()
+    self.recordTimeRunningText.set('0')
+    self.recordTimeRunningLabel = tk.Label(self.recordFrame, textvariable=self.recordTimeRunningText)
+    self.recordTimeRunningLabel.pack(side=tk.LEFT)
+
     self.recordFrame.pack()
 
     self.jsTextArea = tk.Text(height=3)
     self.jsTextArea.pack()
-
-    self.joystick = sdl2.SDL_JoystickOpen(0)
-    self.joystickInput = JoystickInput_SDL(self.joystick)
 
     self.queue = queue.Queue(maxsize=1)
     self.poll_thread_stop_event = threading.Event()
@@ -184,30 +194,36 @@ class App(object):
       self.fpsText = "FPS: %.2f" % (self.fpsCounter.getFPS())
       self.fpsLabel.configure(text=self.fpsText)
 
-      self.ss = self.queue_head
+      self.ss = ImageTk.PhotoImage(self.queue_head[0])
       self.ssLabel.configure(image=self.ss)
       self.ssLabel.update_idletasks()
 
-      #pygame.event.pump() #this is necessary for pygame to get the joystick info
-
-      self.jsString = str(self.joystickInput.getJoystickName()) + " : " + str(self.joystickInput.getJoystickState())
-
-      sdl2.SDL_PumpEvents()
+      self.jsString = str(self.queue_head[1])
       self.jsTextArea.delete(1.0, tk.END)
       self.jsTextArea.insert(1.0, self.jsString)
+
+      if(self.isRecording):
+          self.recordData.append(self.queue_head)
+          self.recordTimeRunningText.set("%.2f" % (time.time()-self.recordTimeStarted))
 
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
 
   def recordButtonClick(self):
     self.isRecording = not self.isRecording
     if(self.isRecording):
+      self.recordTimeStarted = time.time()
+      self.recordData = []
       self.recordButtonText.set("Stop Recording")
     else:
       self.recordButtonText.set("Start Recording")
+      with open('output_test.pickle', 'wb') as self.handle:
+          pickle.dump(self.recordData, self.handle)
 
 pygame.init()
 pygame.joystick.init()
 sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
+globalJoystick = sdl2.SDL_JoystickOpen(0)
+globalJoystickInput = JoystickInput_SDL(globalJoystick)
 app = App()
 app.root.mainloop() 
 pygame.quit()
