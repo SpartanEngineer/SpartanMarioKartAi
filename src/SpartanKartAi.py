@@ -2,7 +2,7 @@ from mss import mss
 from PIL import Image, ImageTk
 from collections import deque
 import tkinter as tk
-import threading, queue, time, sys, pygame, sdl2, pickle
+import threading, queue, time, sys, pygame, sdl2, pickle, json
 
 globalJoystick, globalJoystickInput = None, None
 
@@ -103,6 +103,21 @@ class JoystickInput_SDL():
 
     def getJoystickName(self):
         return sdl2.SDL_JoystickName(self.joystick)
+
+    def getJoystickJson(self, jState=None):
+        #TODO- fix this implementation
+        if(jState == None):
+            jState = self.getJoystickState()
+        self.jDict = {}
+        self.jDict['X_AXIS'] = self.jState[0]
+        self.jDict['Y_AXIS'] = self.jState[1]
+        self.jDict['START_BUTTON'] = self.jState[2]
+        self.jDict['A_BUTTON'] = self.jState[3]
+        self.jDict['B_BUTTON'] = self.jState[4]
+        self.jDict['L_TRIG'] = self.jState[5]
+        self.jDict['R_TRIG'] = self.jState[6]
+        self.jDict['Z_TRIG'] = self.jState[7]
+        return json.dumps(self.jDict)
 
 def getJoystickState(joystickInput):
     return joystickInput.getJoystickState()
