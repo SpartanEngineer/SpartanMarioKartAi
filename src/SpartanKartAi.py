@@ -1,9 +1,10 @@
 from mss import mss
 from PIL import Image, ImageTk
 from collections import deque
-from JoystickInput import JoystickInput_SDL
 import tkinter as tk
-import threading, queue, time, sys, pygame, sdl2, pickle, json
+import threading, queue, time, sys, sdl2, pickle, json, os
+
+from JoystickInput import JoystickInput_SDL
 
 globalJoystick, globalJoystickInput = None, None
 
@@ -109,7 +110,9 @@ class App(object):
     self.recordLabel = tk.Label(self.recordFrame, text='Output Location: ')
     self.recordLabel.pack(side=tk.LEFT)
 
-    self.recordEntry = tk.Entry(self.recordFrame)
+    self.recordEntryText = tk.StringVar()
+    self.recordEntryText.set("samples")
+    self.recordEntry = tk.Entry(self.recordFrame, textvariable=self.recordEntryText)
     self.recordEntry.pack(side=tk.LEFT)
 
     self.recordButtonText = tk.StringVar()
@@ -123,6 +126,8 @@ class App(object):
     self.recordTimeRunningLabel.pack(side=tk.LEFT)
 
     self.recordFrame.pack()
+
+    self.recordNTimesRecorded = 0
 
     self.jsTextArea = tk.Text(height=3)
     self.jsTextArea.pack()
@@ -159,7 +164,9 @@ class App(object):
       self.jsTextArea.insert(1.0, self.jsString)
 
       if(self.isRecording):
-          self.recordData.append(self.queue_head)
+          with open(self.recordDirectory + '/' + str(self.recordSampleNumber), 'wb') as self.handle:
+              pickle.dump(self.queue_head, self.handle)
+          self.recordSampleNumber += 1
           self.recordTimeRunningText.set("%.2f" % (time.time()-self.recordTimeStarted))
 
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
@@ -168,19 +175,18 @@ class App(object):
     self.isRecording = not self.isRecording
     if(self.isRecording):
       self.recordTimeStarted = time.time()
-      self.recordData = []
+      self.recordNTimesRecorded += 1
+      self.recordSampleNumber = 1
+      self.recordDirectory = self.recordEntryText.get() + '/' + str(self.recordNTimesRecorded)
+      if not os.path.exists(self.recordDirectory):
+          os.makedirs(self.recordDirectory)
       self.recordButtonText.set("Stop Recording")
     else:
       self.recordButtonText.set("Start Recording")
-      with open('output_test.pickle', 'wb') as self.handle:
-          pickle.dump(self.recordData, self.handle)
 
-pygame.init()
-pygame.joystick.init()
 sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
 globalJoystick = sdl2.SDL_JoystickOpen(0)
 globalJoystickInput = JoystickInput_SDL(globalJoystick)
 app = App()
 app.root.mainloop() 
-pygame.quit()
 sdl2.SDL_Quit()
