@@ -95,6 +95,7 @@ class App(object):
 
   def __init__(self):
     self.root = tk.Tk()
+    self.root.wm_title("SpartanMarioKartAi - Record Training Data")
 
     self.fpsCounter = FPSCounter()
     self.fpsLabel = tk.Label(text='')
@@ -164,9 +165,13 @@ class App(object):
       self.jsTextArea.insert(1.0, self.jsString)
 
       if(self.isRecording):
-          with open(self.recordDirectory + '/' + str(self.recordSampleNumber), 'wb') as self.handle:
-              pickle.dump(self.queue_head, self.handle)
-          self.recordSampleNumber += 1
+          self.recordData.append(self.queue_head)
+          if(len(self.recordData) >= 100):
+              with open(self.recordDirectory + '/' + str(self.recordSampleNumber), 'wb') as self.handle:
+                  pickle.dump(self.recordData, self.handle)
+              self.recordSampleNumber += 1
+              self.recordData = []
+
           self.recordTimeRunningText.set("%.2f" % (time.time()-self.recordTimeStarted))
 
     self._poll_job_id = self.root.after(self.poll_interval, self.poll)
@@ -177,11 +182,17 @@ class App(object):
       self.recordTimeStarted = time.time()
       self.recordNTimesRecorded += 1
       self.recordSampleNumber = 1
+      self.recordData = []
+      if not os.path.exists(self.recordEntryText.get()):
+          os.makedirs(self.recordEntryText.get())
       self.recordDirectory = self.recordEntryText.get() + '/' + str(self.recordNTimesRecorded)
       if not os.path.exists(self.recordDirectory):
           os.makedirs(self.recordDirectory)
       self.recordButtonText.set("Stop Recording")
     else:
+      if(len(self.recordData) > 0):
+          with open(self.recordDirectory + '/' + str(self.recordSampleNumber), 'wb') as self.handle:
+              pickle.dump(self.recordData, self.handle)
       self.recordButtonText.set("Start Recording")
 
 sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
