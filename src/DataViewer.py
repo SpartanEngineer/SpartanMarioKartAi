@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import os
 
 samples_dir = 'samples'
 
@@ -10,15 +11,20 @@ class DataViewerApp(object):
     self.root.wm_title("SpartanMarioKartAi - View Training Data")
 
     self.tree = ttk.Treeview(self.root)
-
-    self.tree.insert('', 'end', "Item1", text="Item1")
-    self.tree.insert('', 'end', "Item2", text="Item2")
-    self.tree.insert('', 'end', "Item3", text="Item3")
-
-    self.tree.insert("Item1", 'end', "SubItem1", text="SubItem1")
-    self.tree.insert("Item1", 'end', "SubItem2", text="SubItem2")
-
+    self.loadTree(samples_dir)
     self.tree.pack()
+
+  #load the file system into the treeview
+  def loadTree(self, rootDir):
+      self.tree.delete(*self.tree.get_children())
+      self.tree.insert('', 'end', rootDir, text=rootDir)
+      self.loadTreeRecursive(rootDir)
+
+  def loadTreeRecursive(self, rootDir):
+      for f in os.listdir(rootDir):
+          self.tree.insert(rootDir, 'end', rootDir + '/' + f, text=f)
+          if(os.path.isdir(rootDir + '/' + f)):
+              self.loadTreeRecursive(rootDir + '/' + f)
 
 dataViewer = DataViewerApp()
 dataViewer.root.mainloop()
