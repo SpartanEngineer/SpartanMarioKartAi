@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 import os, pickle
 
 samples_dir = 'samples'
@@ -27,9 +28,13 @@ class DataViewerApp(object):
     self.listboxYScroll = tk.Scrollbar(self.listboxFrame, orient=tk.VERTICAL)
     self.listboxYScroll.pack(side=tk.RIGHT, fill=tk.Y)
     self.listbox = tk.Listbox(self.listboxFrame, yscrollcommand=self.listboxYScroll.set)
+    self.listbox.bind("<<ListboxSelect>>", self.loadScreenshotIntoLabel)
     self.listboxYScroll.config(command=self.listbox.yview)
     self.listbox.pack()
     self.listboxFrame.pack()
+
+    self.ssLabel = tk.Label(self.root)
+    self.ssLabel.pack()
 
   #load the file system into the treeview
   def loadTree(self, rootDir):
@@ -60,6 +65,13 @@ class DataViewerApp(object):
                     self.listbox.insert(tk.END, str(i))
       except:
           print('error loading selected file: ' + selected_item)
+
+  def loadScreenshotIntoLabel(self, event):
+      selected_item = self.listbox.curselection()
+      selected_index = int(selected_item[0])
+      self.ss = ImageTk.PhotoImage(self.sampleData[selected_index][0])
+      self.ssLabel.configure(image=self.ss)
+      self.ssLabel.update_idletasks()
 
 dataViewer = DataViewerApp()
 dataViewer.root.mainloop()
