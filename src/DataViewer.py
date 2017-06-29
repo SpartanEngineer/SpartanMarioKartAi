@@ -35,6 +35,10 @@ class DataViewerFrame(object):
     self.ssLabel = tk.Label(self.root)
     self.ssLabel.pack()
 
+    self.deleteItemMenu = tk.Menu(root, tearoff=0)
+    self.deleteItemMenu.add_command(label="Delete?", command=self.onDelete)
+    self.listbox.bind("<Button-3>", self.showDeleteMenu)
+
     self.root.pack()
 
   #load the file system into the treeview
@@ -73,10 +77,27 @@ class DataViewerFrame(object):
 
   def loadScreenshotIntoLabel(self, event):
       selected_item = self.listbox.curselection()
+      if(selected_item == ()):
+          return
+
       selected_index = int(selected_item[0])
       self.ss = ImageTk.PhotoImage(self.sampleData[selected_index][0])
       self.ssLabel.configure(image=self.ss)
       self.ssLabel.update_idletasks()
+
+  def showDeleteMenu(self, event):
+      if(self.listbox.curselection() != ()):
+          self.deleteItemMenu.post(event.x_root, event.y_root)
+
+  def onDelete(self):
+      selected_item = self.listbox.curselection()
+      if(selected_item == ()):
+          return
+
+      self.listbox.delete(selected_item[0])
+      data = self.sampleDataDict[str(selected_item[0])]
+      self.sampleData.remove(data)
+      del self.sampleDataDict[str(selected_item[0])]
 
 root = tk.Tk()
 root.wm_title("SpartanMarioKartAi - View Training Data")
