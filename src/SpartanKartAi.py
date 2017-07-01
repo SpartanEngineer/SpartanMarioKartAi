@@ -7,6 +7,7 @@ import threading, queue, time, sys, sdl2, pickle, json, os
 
 from JoystickInput import JoystickInput_SDL
 from DataViewer import DataViewerFrame
+from JoystickServer import JoystickServerFrame
 
 globalJoystick, globalJoystickInput = None, None
 
@@ -218,3 +219,4 @@ globalJoystickInput = JoystickInput_SDL(globalJoystick)
 app = App()
 app.root.mainloop() 
 sdl2.SDL_Quit()
+
