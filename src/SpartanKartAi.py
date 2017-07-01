@@ -1,10 +1,12 @@
 from mss import mss
 from PIL import Image, ImageTk
 from collections import deque
+from tkinter import ttk
 import tkinter as tk
 import threading, queue, time, sys, sdl2, pickle, json, os
 
 from JoystickInput import JoystickInput_SDL
+from DataViewer import DataViewerFrame
 
 globalJoystick, globalJoystickInput = None, None
 
@@ -92,17 +94,43 @@ def ss_thread(q, stop_event):
       q.put((getScreenShot(), getJoystickState(globalJoystickInput)))
 
 class App(object):
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.wm_title("SpartanMarioKartAi")
 
-  def __init__(self):
-    self.root = tk.Tk()
-    self.root.wm_title("SpartanMarioKartAi - Record Training Data")
+        self.notebook = ttk.Notebook(self.root)
+
+        self.dataRecorderFrame = DataRecorderFrame(self.notebook)
+        self.dataViewerFrame = DataViewerFrame(self.notebook)
+
+        self.notebook.add(self.dataRecorderFrame.root, text="Record Data", compound=tk.TOP)
+        self.notebook.add(self.dataViewerFrame.root, text="View Data", compound=tk.TOP)
+
+        self.notebook.pack()
+
+        self.poll_thread_stop_event = threading.Event()
+        self.poll_thread = threading.Thread(target=ss_thread, name='Thread', args=(self.dataRecorderFrame.queue,self.poll_thread_stop_event))
+        self.poll_thread.start()
+        self.dataRecorderFrame.poll_interval = 10
+        self.dataRecorderFrame.poll()
+
+        self.root.wm_protocol("WM_DELETE_WINDOW", self.cleanup_on_exit)
+
+    def cleanup_on_exit(self):
+        """Needed to shutdown the polling thread."""
+        self.poll_thread_stop_event.set()
+        self.root.quit() #Allow the rest of the quit process to continue
+
+class DataRecorderFrame(object):
+  def __init__(self, master):
+    self.root = tk.Frame(master)
 
     self.fpsCounter = FPSCounter()
-    self.fpsLabel = tk.Label(text='')
+    self.fpsLabel = tk.Label(self.root, text='')
     self.fpsLabel.pack()
 
     self.ss = getScreenShot()
-    self.ssLabel = tk.Label(image=ImageTk.PhotoImage(self.ss))
+    self.ssLabel = tk.Label(self.root, image=ImageTk.PhotoImage(self.ss))
     self.ssLabel.pack()
 
     self.isRecording = False
@@ -130,23 +158,12 @@ class App(object):
 
     self.recordNTimesRecorded = 0
 
-    self.jsTextArea = tk.Text(height=3)
+    self.jsTextArea = tk.Text(self.root, height=3)
     self.jsTextArea.pack()
 
     self.queue = queue.Queue(maxsize=1)
-    self.poll_thread_stop_event = threading.Event()
-    self.poll_thread = threading.Thread(target=ss_thread, name='Thread', args=(self.queue,self.poll_thread_stop_event))
-    self.poll_thread.start()
 
-    self.poll_interval = 10
-    self.poll()
-
-    self.root.wm_protocol("WM_DELETE_WINDOW", self.cleanup_on_exit)
-
-  def cleanup_on_exit(self):
-    """Needed to shutdown the polling thread."""
-    self.poll_thread_stop_event.set()
-    self.root.quit() #Allow the rest of the quit process to continue
+    self.root.pack()
 
   def poll(self):
     if self.queue.qsize():

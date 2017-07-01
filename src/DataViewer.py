@@ -35,7 +35,7 @@ class DataViewerFrame(object):
     self.ssLabel = tk.Label(self.root)
     self.ssLabel.pack()
 
-    self.deleteItemMenu = tk.Menu(root, tearoff=0)
+    self.deleteItemMenu = tk.Menu(self.root, tearoff=0)
     self.deleteItemMenu.add_command(label="Delete?", command=self.onDelete)
     self.listbox.bind("<Button-3>", self.showDeleteMenu)
 
@@ -99,7 +99,3 @@ class DataViewerFrame(object):
       self.sampleData.remove(data)
       del self.sampleDataDict[str(selected_item[0])]
 
-root = tk.Tk()
-root.wm_title("SpartanMarioKartAi - View Training Data")
-dataViewer = DataViewerFrame(root)
-root.mainloop()
