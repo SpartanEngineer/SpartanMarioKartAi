@@ -35,6 +35,9 @@ class DataViewerFrame(object):
     self.ssLabel = tk.Label(self.root)
     self.ssLabel.pack()
 
+    self.jsTextArea = tk.Text(self.root, height=3)
+    self.jsTextArea.pack()
+
     self.deleteItemMenu = tk.Menu(self.root, tearoff=0)
     self.deleteItemMenu.add_command(label="Delete?", command=self.onDelete)
     self.listbox.bind("<Button-3>", self.showDeleteMenu)
@@ -84,6 +87,10 @@ class DataViewerFrame(object):
       self.ss = ImageTk.PhotoImage(self.sampleData[selected_index][0])
       self.ssLabel.configure(image=self.ss)
       self.ssLabel.update_idletasks()
+
+      self.jsString = str(self.sampleData[selected_index][1])
+      self.jsTextArea.delete(1.0, tk.END)
+      self.jsTextArea.insert(1.0, self.jsString)
 
   def showDeleteMenu(self, event):
       if(self.listbox.curselection() != ()):
