@@ -4,6 +4,18 @@ SDL_AXIS_MAX = 32768
 JSON_AXIS_MAX = 100
 SDL_AXIS_CONVERT = SDL_AXIS_MAX / JSON_AXIS_MAX
 
+def getJoystickJson(jState):
+    jDict = {}
+    jDict['X_AXIS'] = int(jState[0] / SDL_AXIS_CONVERT)
+    jDict['Y_AXIS'] = -int(jState[1] / SDL_AXIS_CONVERT)
+    jDict['START_BUTTON'] = jState[7]
+    jDict['A_BUTTON'] = jState[18]
+    jDict['B_BUTTON'] = jState[19]
+    jDict['L_TRIG'] = jState[13]
+    jDict['R_TRIG'] = jState[15]
+    jDict['Z_TRIG'] = jState[14]
+    return json.dumps(jDict)
+
 #SDL input
 class JoystickInput_SDL():
 
@@ -27,20 +39,6 @@ class JoystickInput_SDL():
 
     def getJoystickName(self):
         return sdl2.SDL_JoystickName(self.joystick)
-
-    def getJoystickJson(self, jState=None):
-        if(jState == None):
-            jState = self.getJoystickState()
-        self.jDict = {}
-        self.jDict['X_AXIS'] = int(jState[0] / SDL_AXIS_CONVERT)
-        self.jDict['Y_AXIS'] = -int(jState[1] / SDL_AXIS_CONVERT)
-        self.jDict['START_BUTTON'] = jState[7]
-        self.jDict['A_BUTTON'] = jState[18]
-        self.jDict['B_BUTTON'] = jState[19]
-        self.jDict['L_TRIG'] = jState[13]
-        self.jDict['R_TRIG'] = jState[15]
-        self.jDict['Z_TRIG'] = jState[14]
-        return json.dumps(self.jDict)
 
 #pygame input
 class JoystickInput():

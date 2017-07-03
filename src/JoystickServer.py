@@ -1,5 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from JoystickInput import JoystickInput_SDL
+from JoystickInput import JoystickInput_SDL, getJoystickJson
 from multiprocessing import Process
 import sdl2 
 import tkinter as tk
@@ -18,11 +18,12 @@ class myHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         sdl2.SDL_PumpEvents()
-        output = globalJoystickInput.getJoystickJson()
+        output = globalJoystickInput.getJoystickState()
+        output_json = getJoystickJson(output) 
         if(__name__ == '__main__'):
-            print(output)
+            print(output_json)
 
-        self.wfile.write(str.encode(output))
+        self.wfile.write(str.encode(output_json))
         return
 
 class JoystickServerFrame(object):
