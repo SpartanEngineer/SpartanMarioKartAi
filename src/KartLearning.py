@@ -1,7 +1,7 @@
 from sklearn import neural_network
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import numpy as np
-import pickle
+import pickle, time, os
 
 from JoystickInput import getJoystickJson
 
@@ -14,6 +14,7 @@ def imageToNPArray(img):
 
 def predictJoystickOutput(classifier, img):
     #TODO: implement this
+    #print('predict[0] : ', classifier.predict([data[0]]))
     return [0 for x in range(23)]
 
 class AIServer(BaseHTTPRequestHandler):
@@ -34,20 +35,40 @@ class AIServer(BaseHTTPRequestHandler):
         self.wfile.write(str.encode(output_json))
         return
 
-#img -> 23 int list
-file_name = 'samples/1/1'
+def trainClassifier(samplesDir, outputFileName):
+    #TODO: finish implementing this
+    startTime = time.time()
+    classifier = neural_network.MLPClassifier()
+    totalSamples = 0
 
-with open(file_name, "rb") as input_file:
-    raw_data = pickle.load(input_file)
-    raw_data = raw_data[0:2]
+    #process all the files in the directory
+    for f in os.listdir(samplesDir):
+        if(f != '1'):
+            continue
+        fileName = samplesDir + '/' + f
 
-data = [imageToNPArray(x[0]) for x in raw_data]
-target = [x[1] for x in raw_data]
+        with open(fileName, 'rb') as input_file:
+            raw_data = pickle.load(input_file)
+            #raw_data = raw_data[0:2]
 
-print('data[0] : ', data[0])
-print('target[0] : ', target[0])
+            data = [imageToNPArray(x[0]) for x in raw_data]
+            target = [x[1] for x in raw_data]
 
-classifier = neural_network.MLPClassifier()
-classifier.fit(data, target)
+            print('data[0] : ', data[0])
+            print('target[0] : ', target[0])
 
-print('predict[0] : ', classifier.predict([data[0]]))
+            classifier.fit(data, target)
+            totalSamples += len(data)
+
+        break
+
+    #save classifier to a file
+    with open(outputFileName, 'wb') as output_file:
+        pickle.dump(classifier, output_file)
+
+    endTime = time.time() - startTime
+    print('training took: ', endTime)
+    print('seconds per: ', (endTime / len(data)))
+
+#print('predict[0] : ', classifier.predict([data[0]]))
+trainClassifier('samples/1', 'nn_output.pickle')
