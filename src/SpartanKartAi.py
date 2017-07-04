@@ -49,7 +49,11 @@ elif sys.platform == 'win32' or sys.platform == 'cygwin':
         h = win32_rect[3] - y
         return (x, y, w, h)
 
-windowGeometry = getWindowGeometry('Mupen64Plus')
+def setGlobalWindowGeometry(windowName):
+    global windowGeometry
+    windowGeometry = getWindowGeometry(windowName)
+
+setGlobalWindowGeometry('Mupen64Plus')
 screenShotReSize = 320, 240
 
 def getScreenShot():
@@ -213,10 +217,12 @@ class DataRecorderFrame(object):
               pickle.dump(self.recordData, self.handle)
       self.recordButtonText.set("Start Recording")
 
-sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
-globalJoystick = sdl2.SDL_JoystickOpen(0)
-globalJoystickInput = JoystickInput_SDL(globalJoystick)
-app = App()
-app.root.mainloop() 
-sdl2.SDL_Quit()
+
+if(__name__ == '__main__'):
+    sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
+    globalJoystick = sdl2.SDL_JoystickOpen(0)
+    globalJoystickInput = JoystickInput_SDL(globalJoystick)
+    app = App()
+    app.root.mainloop() 
+    sdl2.SDL_Quit()
 

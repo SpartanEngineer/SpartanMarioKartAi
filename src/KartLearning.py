@@ -4,6 +4,7 @@ import numpy as np
 import pickle, time, os
 
 from JoystickInput import getJoystickJson
+from SpartanKartAi import getScreenShot
 
 #input a PIL.Image, return a numpy array containing it's data
 def imageToNPArray(img):
@@ -13,11 +14,17 @@ def imageToNPArray(img):
     return flat[0]
 
 def predictJoystickOutput(classifier, img):
-    #TODO: implement this
-    #print('predict[0] : ', classifier.predict([data[0]]))
+    if(classifier != None and img != None):
+        print('predicting...')
+        prediction = classifier.predict([imageToNPArray(img)])[0]
+
+        #convert np ints to regular python ints
+        result = [x.item() for x in prediction]
+        return result
+
     return [0 for x in range(23)]
 
-class AIServer(BaseHTTPRequestHandler):
+class AIServerHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
@@ -26,14 +33,29 @@ class AIServer(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/plain")
         self.end_headers()
 
-        #TODO: finish this implementation
-        output = predictJoystickOutput(None, None)
+        output = predictJoystickOutput(serverClassifier, getScreenShot())
         output_json = getJoystickJson(output)
 
-        print(output_json)
+        #print(output_json)
 
         self.wfile.write(str.encode(output_json))
         return
+
+def runAIServer(inputClassifierFile):
+    try:
+        PORT_NUMBER = 8082
+        server = HTTPServer(('', PORT_NUMBER), AIServerHandler)
+
+        global serverClassifier
+        with open(inputClassifierFile, 'rb') as input_file:
+            serverClassifier = pickle.load(input_file)
+
+        print('Started httpserver on port ' , PORT_NUMBER)
+        server.serve_forever()
+
+    except KeyboardInterrupt:
+        print('^C received, shutting down the web server')
+        server.socket.close()
 
 def trainClassifier(samplesDir, outputFileName):
     #TODO: finish implementing this
@@ -43,32 +65,39 @@ def trainClassifier(samplesDir, outputFileName):
 
     #process all the files in the directory
     for f in os.listdir(samplesDir):
-        if(f != '1'):
-            continue
         fileName = samplesDir + '/' + f
 
-        with open(fileName, 'rb') as input_file:
-            raw_data = pickle.load(input_file)
-            #raw_data = raw_data[0:2]
+        try:
+            with open(fileName, 'rb') as input_file:
+                raw_data = pickle.load(input_file)
 
-            data = [imageToNPArray(x[0]) for x in raw_data]
-            target = [x[1] for x in raw_data]
+                data = [imageToNPArray(x[0]) for x in raw_data]
+                target = [x[1] for x in raw_data]
 
-            print('data[0] : ', data[0])
-            print('target[0] : ', target[0])
+                #print('data[0] : ', data[0])
+                #print('target[0] : ', target[0])
 
-            classifier.fit(data, target)
-            totalSamples += len(data)
+                if(totalSamples == 0):
+                    classifier.fit(data, target)
+                else:
+                    classifier.partial_fit(data, target)
 
-        break
+                totalSamples += len(data)
+
+                print('processed file:', fileName)
+
+        except Exception as e:
+            print('Error:', e)
+            print('Issue with file:', fileName)
 
     #save classifier to a file
     with open(outputFileName, 'wb') as output_file:
         pickle.dump(classifier, output_file)
 
     endTime = time.time() - startTime
-    print('training took: ', endTime)
-    print('seconds per: ', (endTime / len(data)))
+    print('training took:', endTime)
+    print('seconds per:', (endTime / len(data)))
+    print('total samples:', totalSamples)
 
-#print('predict[0] : ', classifier.predict([data[0]]))
-trainClassifier('samples/1', 'nn_output.pickle')
+#trainClassifier('samples/1', 'nn_output.pickle')
+runAIServer('nn_output.pickle')
