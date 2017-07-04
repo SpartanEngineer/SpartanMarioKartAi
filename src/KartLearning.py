@@ -1,7 +1,7 @@
 from sklearn import neural_network
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import numpy as np
-import pickle, time, os
+import pickle, time, os, multiprocessing
 
 from JoystickInput import getJoystickJson
 from SpartanKartAi import getScreenShot
@@ -15,13 +15,13 @@ def imageToNPArray(img):
 
 def predictJoystickOutput(classifier, img):
     if(classifier != None and img != None):
-        print('predicting...')
         prediction = classifier.predict([imageToNPArray(img)])[0]
 
         #convert np ints to regular python ints
         result = [x.item() for x in prediction]
         return result
 
+    #if there's no classifier to use to predict, give it dummy output
     return [0 for x in range(23)]
 
 class AIServerHandler(BaseHTTPRequestHandler):
@@ -33,29 +33,45 @@ class AIServerHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/plain")
         self.end_headers()
 
-        output = predictJoystickOutput(serverClassifier, getScreenShot())
-        output_json = getJoystickJson(output)
+        if(not workerQueue.empty()):
+            global globalOutputJson
+            globalOutputJson = workerQueue.get()
 
-        #print(output_json)
+        #print(globalOutputJson)
 
-        self.wfile.write(str.encode(output_json))
+        self.wfile.write(str.encode(globalOutputJson))
         return
 
 def runAIServer(inputClassifierFile):
     try:
+        with open(inputClassifierFile, 'rb') as input_file:
+            classifier = pickle.load(input_file)
+
+        global workerQueue, globalOutputJson
+        globalOutputJson = getJoystickJson([0 for x in range(23)])
+
+        workerQueue = multiprocessing.Queue(maxsize=1)
+        workerThreadStopEvent = multiprocessing.Event()
+        workerThread = multiprocessing.Process(target=aiServerWorkerThread, name='AI Server Worker Thread', args=(classifier, workerQueue, workerThreadStopEvent))
+        workerThread.daemon = True
+
         PORT_NUMBER = 8082
         server = HTTPServer(('', PORT_NUMBER), AIServerHandler)
-
-        global serverClassifier
-        with open(inputClassifierFile, 'rb') as input_file:
-            serverClassifier = pickle.load(input_file)
-
+        workerThread.start()
         print('Started httpserver on port ' , PORT_NUMBER)
         server.serve_forever()
 
     except KeyboardInterrupt:
         print('^C received, shutting down the web server')
         server.socket.close()
+        workerThreadStopEvent.set()
+
+def aiServerWorkerThread(classifier, q, stop_event):
+    while(not stop_event.is_set()):
+        if q.empty():
+            prediction = predictJoystickOutput(classifier, getScreenShot())
+            prediction_json = getJoystickJson(prediction)
+            q.put(prediction_json)
 
 def trainClassifier(samplesDir, outputFileName):
     #TODO: finish implementing this
