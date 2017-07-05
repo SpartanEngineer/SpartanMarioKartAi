@@ -6,14 +6,14 @@ SDL_AXIS_CONVERT = SDL_AXIS_MAX / JSON_AXIS_MAX
 
 def getJoystickJson(jState):
     jDict = {}
-    jDict['X_AXIS'] = int(jState[0] / SDL_AXIS_CONVERT)
-    jDict['Y_AXIS'] = -int(jState[1] / SDL_AXIS_CONVERT)
-    jDict['START_BUTTON'] = jState[7]
-    jDict['A_BUTTON'] = jState[18]
-    jDict['B_BUTTON'] = jState[19]
-    jDict['L_TRIG'] = jState[13]
-    jDict['R_TRIG'] = jState[15]
-    jDict['Z_TRIG'] = jState[14]
+    jDict['X_AXIS'] = jState[0] - 100
+    jDict['Y_AXIS'] = jState[1] - 100
+    jDict['START_BUTTON'] = jState[5]
+    jDict['A_BUTTON'] = jState[16]
+    jDict['B_BUTTON'] = jState[17]
+    jDict['L_TRIG'] = jState[11]
+    jDict['R_TRIG'] = jState[13]
+    jDict['Z_TRIG'] = jState[12]
     return json.dumps(jDict)
 
 #SDL input
@@ -21,7 +21,7 @@ class JoystickInput_SDL():
 
     def __init__(self, joystick):
         self.joystick = joystick
-        self.numAxes = min(sdl2.SDL_JoystickNumAxes(self.joystick), 4)
+        self.numAxes = 2
         self.numButtons = sdl2.SDL_JoystickNumButtons(self.joystick)
 
     def getJoystickState(self):
@@ -34,6 +34,9 @@ class JoystickInput_SDL():
         for i in range(self.numButtons):
             self.button = sdl2.SDL_JoystickGetButton(self.joystick, i)
             self.result.append(self.button)
+
+        self.result[0] = int(self.result[0] / SDL_AXIS_CONVERT) + 100
+        self.result[1] = -int(self.result[1] / SDL_AXIS_CONVERT) + 100
 
         return self.result
 

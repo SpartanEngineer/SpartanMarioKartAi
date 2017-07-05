@@ -22,7 +22,7 @@ def predictJoystickOutput(classifier, img):
         return result
 
     #if there's no classifier to use to predict, give it dummy output
-    return [0 for x in range(23)]
+    return [0 for x in range(21)]
 
 class AIServerHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -94,7 +94,8 @@ def trainClassifier(samplesDir, outputFileName):
                 #print('target[0] : ', target[0])
 
                 if(totalSamples == 0):
-                    classifier.fit(data, target)
+                    possible_classes = np.array([x for x in range(0, 201)])
+                    classifier.partial_fit(data, target, classes=possible_classes)
                 else:
                     classifier.partial_fit(data, target)
 
@@ -115,5 +116,5 @@ def trainClassifier(samplesDir, outputFileName):
     print('seconds per:', (endTime / len(data)))
     print('total samples:', totalSamples)
 
-#trainClassifier('samples/1', 'nn_output.pickle')
-runAIServer('nn_output.pickle')
+trainClassifier('samples/1', 'nn_output2.pickle')
+#runAIServer('nn_output.pickle')
