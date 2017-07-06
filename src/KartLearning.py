@@ -18,8 +18,14 @@ def predictJoystickOutput(classifier, img):
         prediction = classifier.predict([imageToNPArray(img)])[0]
 
         #convert np ints to regular python ints
-        result = [x.item() for x in prediction]
-        return result
+        #result = [x.item() for x in prediction]
+
+        #predicting just the X-axis for now
+        result_actual = [0 for x in range(21)]
+        result_actual[0] = prediction.item()
+        result_actual[1] = 100
+        result_actual[16] = 1
+        return result_actual
 
     #if there's no classifier to use to predict, give it dummy output
     return [0 for x in range(21)]
@@ -37,7 +43,7 @@ class AIServerHandler(BaseHTTPRequestHandler):
             global globalOutputJson
             globalOutputJson = workerQueue.get()
 
-        #print(globalOutputJson)
+        print(globalOutputJson)
 
         self.wfile.write(str.encode(globalOutputJson))
         return
@@ -76,7 +82,7 @@ def aiServerWorkerThread(classifier, q, stop_event):
 def trainClassifier(samplesDir, outputFileName):
     #TODO: finish implementing this
     startTime = time.time()
-    classifier = neural_network.MLPClassifier()
+    classifier = neural_network.MLPRegressor()
     totalSamples = 0
 
     #process all the files in the directory
@@ -88,14 +94,17 @@ def trainClassifier(samplesDir, outputFileName):
                 raw_data = pickle.load(input_file)
 
                 data = [imageToNPArray(x[0]) for x in raw_data]
-                target = [x[1] for x in raw_data]
+
+                #predicting just the X-axis for now
+                target = [x[1][0] for x in raw_data]
 
                 #print('data[0] : ', data[0])
                 #print('target[0] : ', target[0])
 
                 if(totalSamples == 0):
-                    possible_classes = np.array([x for x in range(0, 201)])
-                    classifier.partial_fit(data, target, classes=possible_classes)
+                    #possible_classes = np.array([x for x in range(0, 201)])
+                    #classifier.partial_fit(data, target, classes=possible_classes)
+                    classifier.partial_fit(data, target)
                 else:
                     classifier.partial_fit(data, target)
 
@@ -116,5 +125,5 @@ def trainClassifier(samplesDir, outputFileName):
     print('seconds per:', (endTime / len(data)))
     print('total samples:', totalSamples)
 
-trainClassifier('samples/1', 'nn_output2.pickle')
-#runAIServer('nn_output.pickle')
+#trainClassifier('samples/1', 'nn_output2.pickle')
+runAIServer('nn_output2.pickle')
