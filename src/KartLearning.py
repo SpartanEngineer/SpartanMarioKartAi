@@ -2,9 +2,10 @@ from sklearn import neural_network
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import numpy as np
 import pickle, time, os, multiprocessing
+import sdl2 
 
-from JoystickInput import getJoystickJson
-from SpartanKartAi import getScreenShot
+from JoystickInput import getJoystickJson, JoystickInput_SDL
+from SpartanKartAi import getScreenShot, setGlobalWindowGeometry
 
 #input a PIL.Image, return a numpy array containing it's data
 def imageToNPArray(img):
@@ -39,21 +40,53 @@ class AIServerHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/plain")
         self.end_headers()
 
-        if(not workerQueue.empty()):
-            global globalOutputJson
-            globalOutputJson = workerQueue.get()
+        sdl2.SDL_PumpEvents()
+        joystick_state = globalJoystickInput.getJoystickState()
+        global globalInputOverride, globalInProcessOfOverride
 
-        print(globalOutputJson)
+        if(joystick_state[12] == 1 and joystick_state[13] == 1 and not globalInProcessOfOverride):
+            globalInputOverride = not globalInputOverride
+            print('inputOverride:', globalInputOverride)
+            globalInProcessOfOverride = True
+        elif (globalInProcessOfOverride):
+            globalInProcessOfOverride = (joystick_state[12] == 1 and joystick_state[13] == 1)
 
-        self.wfile.write(str.encode(globalOutputJson))
+        if not globalInputOverride:
+            #AI input
+            if(not workerQueue.empty()):
+                global globalOutputJson
+                globalOutputJson = workerQueue.get()
+
+            print(globalOutputJson)
+
+            self.wfile.write(str.encode(globalOutputJson))
+
+        else:
+            #controller input
+            output_json = getJoystickJson(joystick_state) 
+            print(output_json)
+
+            self.wfile.write(str.encode(output_json))
+
         return
 
 def runAIServer(inputClassifierFile):
     try:
+        global workerQueue, globalOutputJson, globalJoystickInput
+        global globalInputOverride, globalInProcessOfOverride
+
+        #init controller input
+        sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
+        globalJoystick = sdl2.SDL_JoystickOpen(0)
+        globalJoystickInput = JoystickInput_SDL(globalJoystick)
+        globalInputOverride = True
+        globalInProcessOfOverride = False
+
+        setGlobalWindowGeometry('Mupen64Plus')
+
         with open(inputClassifierFile, 'rb') as input_file:
             classifier = pickle.load(input_file)
 
-        global workerQueue, globalOutputJson
         globalOutputJson = getJoystickJson([0 for x in range(23)])
 
         workerQueue = multiprocessing.Queue(maxsize=1)
