@@ -7,6 +7,9 @@ import sdl2
 from JoystickInput import getJoystickJson, JoystickInput_SDL
 from SpartanKartAi import getScreenShot, setGlobalWindowGeometry
 
+#requires mupen64 and the input driver from:
+#https://github.com/kevinhughes27/mupen64plus-input-bot
+
 #input a PIL.Image, return a numpy array containing it's data
 def imageToNPArray(img):
     arr  = np.array(list(img.getdata()))
@@ -115,7 +118,7 @@ def aiServerWorkerThread(classifier, q, stop_event):
 def trainClassifier(samplesDir, outputFileName):
     #TODO: finish implementing this
     startTime = time.time()
-    classifier = neural_network.MLPRegressor()
+    classifier = neural_network.MLPClassifier()
     totalSamples = 0
 
     #process all the files in the directory
@@ -135,9 +138,9 @@ def trainClassifier(samplesDir, outputFileName):
                 #print('target[0] : ', target[0])
 
                 if(totalSamples == 0):
-                    #possible_classes = np.array([x for x in range(0, 201)])
-                    #classifier.partial_fit(data, target, classes=possible_classes)
-                    classifier.partial_fit(data, target)
+                    possible_classes = np.array([x for x in range(0, 201)])
+                    classifier.partial_fit(data, target, classes=possible_classes)
+                    #classifier.partial_fit(data, target)
                 else:
                     classifier.partial_fit(data, target)
 

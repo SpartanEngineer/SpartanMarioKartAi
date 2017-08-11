@@ -4,6 +4,9 @@ from multiprocessing import Process
 import sdl2 
 import tkinter as tk
 
+#requires mupen64 and the input driver from:
+#https://github.com/kevinhughes27/mupen64plus-input-bot
+
 sdl2.SDL_Init(sdl2.SDL_INIT_JOYSTICK)
 globalJoystick = sdl2.SDL_JoystickOpen(0)
 globalJoystickInput = JoystickInput_SDL(globalJoystick)
